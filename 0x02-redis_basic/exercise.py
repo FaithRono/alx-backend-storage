@@ -1,17 +1,11 @@
 #!/usr/bin/env python3
 """Redis and Python exercise"""
 
-# Importing the UUID library for generating unique keys
-import uuid
+import uuid  # Importing the UUID library for generating unique keys
+from functools import wraps  # Importing wraps for decorator functionality
+from typing import Callable, Union  # Importing Callable and Union for type annotations
 
-# Importing wraps for decorator functionality
-from functools import wraps
-
-# Importing Callable and Union for type annotations
-from typing import Callable, Union
-
-# Importing the Redis client library
-import redis
+import redis  # Importing the Redis client library
 
 
 def count_calls(method: Callable) -> Callable:
@@ -19,8 +13,7 @@ def count_calls(method: Callable) -> Callable:
     Decorator to count the number of times a method is called.
     It takes a single method Callable argument and returns a Callable.
     """
-    # Get the qualified name of the method
-    key = method.__qualname__
+    key = method.__qualname__  # Get the qualified name of the method
 
     @wraps(method)
     def wrapper(self, *args, **kwargs):
@@ -28,12 +21,9 @@ def count_calls(method: Callable) -> Callable:
         Wrapper function that increments the count for the key every time
         the method is called and returns the value returned by the original method.
         """
-        # Increment the count for the method key
-        self._redis.incr(key)
-        # Call the original method
-        return method(self, *args, **kwargs)
-    # Return the wrapper function
-    return wrapper
+        self._redis.incr(key)  # Increment the count for the method key
+        return method(self, *args, **kwargs)  # Call the original method
+    return wrapper  # Return the wrapper function
 
 
 def call_history(method: Callable) -> Callable:
@@ -46,24 +36,17 @@ def call_history(method: Callable) -> Callable:
         """
         Wrapper function that saves the input and output of each function call in Redis.
         """
-        # Key for storing inputs
-        input_key = method.__qualname__ + ":inputs"
-        # Key for storing outputs
-        output_key = method.__qualname__ + ":outputs"
+        input_key = method.__qualname__ + ":inputs"  # Key for storing inputs
+        output_key = method.__qualname__ + ":outputs"  # Key for storing outputs
 
-        # Call the original method
-        output = method(self, *args, **kwargs)
+        output = method(self, *args, **kwargs)  # Call the original method
 
-        # Save the inputs in Redis
-        self._redis.rpush(input_key, str(args))
-        # Save the outputs in Redis
-        self._redis.rpush(output_key, str(output))
+        self._redis.rpush(input_key, str(args))  # Save the inputs in Redis
+        self._redis.rpush(output_key, str(output))  # Save the outputs in Redis
 
-        # Return the output of the original method
-        return output
+        return output  # Return the output of the original method
 
-    # Return the wrapper function
-    return wrapper
+    return wrapper  # Return the wrapper function
 
 
 def replay(fn: Callable):
@@ -71,40 +54,29 @@ def replay(fn: Callable):
     Function to display the history of calls of a particular function.
     It takes a single Callable argument.
     """
-    # Create a new Redis client
-    r = redis.Redis()
-    # Get the qualified name of the function
-    f_name = fn.__qualname__
-    # Get the number of calls from Redis
-    n_calls = r.get(f_name)
+    r = redis.Redis()  # Create a new Redis client
+    f_name = fn.__qualname__  # Get the qualified name of the function
+    n_calls = r.get(f_name)  # Get the number of calls from Redis
     try:
-        # Decode the number of calls
-        n_calls = n_calls.decode('utf-8')
+        n_calls = n_calls.decode('utf-8')  # Decode the number of calls
     except Exception:
-        # Default to 0 if decoding fails
-        n_calls = 0
-    # Print the number of calls
-    print(f'{f_name} was called {n_calls} times:')
+        n_calls = 0  # Default to 0 if decoding fails
+    print(f'{f_name} was called {n_calls} times:')  # Print the number of calls
 
-    # Get the list of inputs from Redis
-    ins = r.lrange(f_name + ":inputs", 0, -1)
-    # Get the list of outputs from Redis
-    outs = r.lrange(f_name + ":outputs", 0, -1)
+    ins = r.lrange(f_name + ":inputs", 0, -1)  # Get the list of inputs from Redis
+    outs = r.lrange(f_name + ":outputs", 0, -1)  # Get the list of outputs from Redis
 
     for i, o in zip(ins, outs):
         try:
-            # Decode each input
-            i = i.decode('utf-8')
+            i = i.decode('utf-8')  # Decode each input
         except Exception:
             i = ""
         try:
-            # Decode each output
-            o = o.decode('utf-8')
+            o = o.decode('utf-8')  # Decode each output
         except Exception:
             o = ""
 
-        # Print the input and output
-        print(f'{f_name}(*{i}) -> {o}')
+        print(f'{f_name}(*{i}) -> {o}')  # Print the input and output
 
 
 class Cache():
@@ -114,10 +86,8 @@ class Cache():
 
     def __init__(self) -> None:
         """Initialize the Redis client and flush the database."""
-        # Create a Redis client
-        self._redis = redis.Redis()
-        # Flush the Redis database
-        self._redis.flushdb()
+        self._redis = redis.Redis()  # Create a Redis client
+        self._redis.flushdb()  # Flush the Redis database
 
     @count_calls  # Apply the count_calls decorator
     @call_history  # Apply the call_history decorator
@@ -131,17 +101,13 @@ class Cache():
         Returns:
             str: The randomly generated key used to store the data.
         """
-        # Generate a random key
-        key = str(uuid.uuid4())
-        # Store the data in Redis
-        self._redis.set(key, data)
-        # Return the generated key
-        return key
+        key = str(uuid.uuid4())  # Generate a random key
+        self._redis.set(key, data)  # Store the data in Redis
+        return key  # Return the generated key
 
     def get(self, key: str, fn: Callable = None) -> Union[str, bytes, int, float]:
         """
-        Get method to retrieve data from Redis and optionally transform
-        it to a Python type.
+        Get method to retrieve data from Redis and optionally transform it to a Python type.
 
         Args:
             key (str): The key used to retrieve the data.
@@ -150,13 +116,10 @@ class Cache():
         Returns:
             Union[str, bytes, int, float]: The retrieved data.
         """
-        # Get the data from Redis
-        data = self._redis.get(key)
+        data = self._redis.get(key)  # Get the data from Redis
         if fn:
-            # Transform the data if a function is provided
-            return fn(data)
-        # Return the raw data
-        return data
+            return fn(data)  # Transform the data if a function is provided
+        return data  # Return the raw data
 
     def get_str(self, key: str) -> str:
         """
@@ -168,10 +131,8 @@ class Cache():
         Returns:
             str: The retrieved data as a string.
         """
-        # Get the data from Redis
-        variable = self._redis.get(key)
-        # Decode the data to a string
-        return variable.decode("UTF-8")
+        variable = self._redis.get(key)  # Get the data from Redis
+        return variable.decode("UTF-8")  # Decode the data to a string
 
     def get_int(self, key: str) -> int:
         """
@@ -183,12 +144,9 @@ class Cache():
         Returns:
             int: The retrieved data as an integer.
         """
-        # Get the data from Redis
-        variable = self._redis.get(key)
+        variable = self._redis.get(key)  # Get the data from Redis
         try:
-            # Decode the data to an integer
-            variable = int(variable.decode("UTF-8"))
+            variable = int(variable.decode("UTF-8"))  # Decode the data to an integer
         except Exception:
-            # Default to 0 if decoding fails
-            variable = 0
+            variable = 0  # Default to 0 if decoding fails
         return variable
