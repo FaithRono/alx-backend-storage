@@ -2,6 +2,7 @@ import redis  # Import the Redis client library
 import uuid  # Import the UUID library for generating random keys
 from typing import Union  # Import Union from typing for type annotations
 
+
 class Cache:
     def __init__(self):
         # Initialize the Redis client and store it as a private attribute
